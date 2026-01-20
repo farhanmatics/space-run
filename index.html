@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fullscreen Mobile Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Home Screen -->
+    <div id="homeScreen" class="screen active">
+        <h1 id="gameTitle">Space Defender</h1>
+        <p class="subtitle">Avoid the falling obstacles!</p>
+        <button id="startButton" class="main-button">Start Game</button>
+        <div class="instructions">
+            <p>Use ← → arrows or swipe to move</p>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="screen">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Game Info Overlay -->
+        <div id="gameInfoOverlay">
+            <div id="scoreDisplay" class="info-box">Score: <span id="score">0</span></div>
+            <div id="livesDisplay" class="info-box">Lives: <span id="lives">3</span></div>
+        </div>
+        
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="overlay-screen">
+            <h2>Game Over!</h2>
+            <p class="final-score">Your Score: <span id="finalScore">0</span></p>
+            <button id="restartButton" class="main-button">Play Again</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
