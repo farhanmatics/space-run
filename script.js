@@ -10,15 +10,25 @@ const homeScreen = document.getElementById('homeScreen');
 const gameScreen = document.getElementById('gameScreen');
 const gameOverScreen = document.getElementById('gameOverScreen');
 
-// Load rocket PNG as an image
-const rocketImg = new Image();
-rocketImg.src = 'assets/space_shuttle_icon_256.png';
+// Load sprite sheet for player ship
+const spriteSheet = new Image();
+spriteSheet.src = 'assets/BlueStarShip/Blue Star Ship Idle Sprite Sheet.png';
 
-// Track if the rocket image has loaded
-let rocketLoaded = false;
-rocketImg.onload = function() {
-    rocketLoaded = true;
+// Track if the sprite sheet has loaded
+let spriteSheetLoaded = false;
+spriteSheet.onload = function() {
+    spriteSheetLoaded = true;
 };
+
+// Sprite sheet animation variables
+const spriteFrameWidth = 64;  // Each frame is 64x64 pixels
+const spriteFrameHeight = 64;
+const spriteColumns = 4;      // 4 columns
+const spriteRows = 2;         // 2 rows
+const totalFrames = 8;        // 4 * 2 = 8 frames total
+let currentFrame = 0;         // Current frame index (0-7)
+let animationFrameCounter = 0;
+const framesPerAnimationFrame = 8; // Change frame every 8 game frames (adjust for animation speed)
 
 // Load asteroid PNG as an image
 const asteroidImg = new Image();
@@ -86,8 +96,9 @@ let player = {
 };
 
 function initPlayer() {
-    player.width = Math.max(40, canvas.width * 0.1); // 10% of canvas width
-    player.height = Math.max(30, canvas.height * 0.05); // 5% of canvas height
+    // Make the ship larger - use 18% of canvas width and maintain square aspect ratio
+    player.width = Math.max(80, canvas.width * 0.18); // 18% of canvas width
+    player.height = player.width; // Keep it square to match the 64x64 sprite
     player.x = canvas.width / 2 - player.width / 2;
     player.y = canvas.height - player.height - 20;
     player.speed = canvas.width * 0.008; // Speed proportional to canvas size
@@ -103,16 +114,25 @@ let enemies = [];
 let enemySpawnRate = 60;
 let frameCount = 0;
 
-// Draw player ship (using PNG rocket image)
+// Draw player ship (using sprite sheet)
 function drawPlayer() {
-    if (rocketLoaded) {
-        // Draw the rocket image
+    if (spriteSheetLoaded) {
+        // Calculate which frame to draw from the sprite sheet
+        const column = currentFrame % spriteColumns;  // Column index (0-3)
+        const row = Math.floor(currentFrame / spriteColumns);  // Row index (0-1)
+        
+        // Calculate source position in sprite sheet
+        const sourceX = column * spriteFrameWidth;
+        const sourceY = row * spriteFrameHeight;
+        
+        // Draw the current frame from the sprite sheet
         ctx.drawImage(
-            rocketImg,
-            player.x, player.y, player.width, player.height
+            spriteSheet,
+            sourceX, sourceY, spriteFrameWidth, spriteFrameHeight,  // Source rectangle
+            player.x, player.y, player.width, player.height  // Destination rectangle
         );
     } else {
-        // Fallback to drawing a rectangle if the image hasn't loaded yet
+        // Fallback to drawing a rectangle if the sprite sheet hasn't loaded yet
         ctx.fillStyle = '#3498db';
         ctx.fillRect(player.x, player.y, player.width, player.height);
         
@@ -271,6 +291,13 @@ function update() {
     // Update stars for space effect
     updateStars();
     
+    // Update sprite animation
+    animationFrameCounter++;
+    if (animationFrameCounter >= framesPerAnimationFrame) {
+        animationFrameCounter = 0;
+        currentFrame = (currentFrame + 1) % totalFrames; // Loop through frames 0-7
+    }
+    
     // Move player
     player.x += player.dx;
     
@@ -329,6 +356,8 @@ function startGame() {
     enemies = []; // Clear enemies array
     frameCount = 0;
     enemySpawnRate = 60;
+    currentFrame = 0; // Reset animation to first frame
+    animationFrameCounter = 0;
     
     scoreElement.textContent = score;
     livesElement.textContent = lives;
