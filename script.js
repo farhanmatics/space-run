@@ -80,8 +80,15 @@ function updateStars() {
 
 // Set canvas to full window size
 function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Use visual viewport if available (better for mobile), otherwise fallback to window
+    const visualViewport = window.visualViewport;
+    if (visualViewport) {
+        canvas.width = visualViewport.width;
+        canvas.height = visualViewport.height;
+    } else {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
     initStars(); // Reinitialize stars when canvas is resized
 }
 
@@ -113,6 +120,9 @@ let animationId;
 let enemies = [];
 let enemySpawnRate = 60;
 let frameCount = 0;
+
+// Music variables
+let backgroundMusic = null;
 
 // Draw player ship (using sprite sheet)
 function drawPlayer() {
@@ -337,6 +347,88 @@ function gameLoop(timestamp) {
     animationId = requestAnimationFrame(gameLoop);
 }
 
+// Load and setup background music
+function loadBackgroundMusic() {
+    // Try to load MP3 first, fallback to OGG, then WAV
+    const audio = new Audio();
+    
+    // Set audio properties
+    audio.loop = true;
+    audio.volume = 0.5; // 50% volume (adjust as needed)
+    audio.preload = 'auto';
+    
+    // Try different audio formats
+    const audioFormats = [
+        'assets/leap.mp3',
+        'assets/leap.ogg',
+        'assets/leap.wav'
+    ];
+    
+    // Set source and handle errors
+    let formatIndex = 0;
+    const tryNextFormat = () => {
+        if (formatIndex < audioFormats.length) {
+            audio.src = audioFormats[formatIndex];
+            audio.load();
+            formatIndex++;
+        } else {
+            console.warn('No supported audio format found. Please convert leap.mid to MP3, OGG, or WAV format.');
+        }
+    };
+    
+    audio.addEventListener('error', () => {
+        console.log(`Failed to load ${audioFormats[formatIndex - 1]}, trying next format...`);
+        tryNextFormat();
+    });
+    
+    audio.addEventListener('canplaythrough', () => {
+        console.log('Background music loaded successfully:', audio.src);
+    });
+    
+    tryNextFormat();
+    
+    backgroundMusic = audio;
+}
+
+// Play background music
+function playMusic() {
+    if (!backgroundMusic) {
+        console.warn('Background music not loaded');
+        return;
+    }
+    
+    try {
+        // Reset to beginning and play
+        backgroundMusic.currentTime = 0;
+        const playPromise = backgroundMusic.play();
+        
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => {
+                    console.log('Music started playing');
+                })
+                .catch(error => {
+                    console.error('Error playing music:', error);
+                    // Music might need user interaction first
+                });
+        }
+    } catch (error) {
+        console.error('Error playing music:', error);
+    }
+}
+
+// Stop background music
+function stopMusic() {
+    if (backgroundMusic) {
+        try {
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
+        } catch (error) {
+            console.error('Error stopping music:', error);
+        }
+    }
+}
+
 // Start game
 function startGame() {
     if (gameRunning) return;
@@ -362,6 +454,9 @@ function startGame() {
     scoreElement.textContent = score;
     livesElement.textContent = lives;
     
+    // Start background music
+    playMusic();
+    
     lastTimestamp = performance.now();
     animationId = requestAnimationFrame(gameLoop);
 }
@@ -370,6 +465,9 @@ function startGame() {
 function endGame() {
     gameRunning = false;
     cancelAnimationFrame(animationId);
+    
+    // Stop background music
+    stopMusic();
     
     // Show game over screen with final score
     finalScoreElement.textContent = score;
@@ -442,6 +540,9 @@ window.addEventListener('load', () => {
     initPlayer();
     initStars();
     setupTouchControls();
+    
+    // Load background music
+    loadBackgroundMusic();
 });
 
 // Event listeners
@@ -450,6 +551,15 @@ document.addEventListener('keyup', keyUpHandler);
 startButton.addEventListener('click', startGame);
 restartButton.addEventListener('click', startGame);
 window.addEventListener('resize', handleResize);
+
+// Listen for visual viewport changes (important for mobile browsers)
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', handleResize);
+    window.visualViewport.addEventListener('scroll', () => {
+        // Prevent scrolling on mobile
+        window.scrollTo(0, 0);
+    });
+}
 
 // Prevent scrolling when touching the game area
 document.body.addEventListener('touchmove', (e) => {
