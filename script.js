@@ -1,6 +1,14 @@
 // script.js - Fullscreen game logic with home and game over screens
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+// Home screen ship animation canvas
+const homeShipCanvas = document.getElementById('homeShipCanvas');
+const homeShipCtx = homeShipCanvas.getContext('2d');
+
+// Game over screen ship animation canvas
+const gameOverShipCanvas = document.getElementById('gameOverShipCanvas');
+const gameOverShipCtx = gameOverShipCanvas.getContext('2d');
 const scoreElement = document.getElementById('score');
 const livesElement = document.getElementById('lives');
 const finalScoreElement = document.getElementById('finalScore');
@@ -30,6 +38,19 @@ let currentFrame = 0;         // Current frame index (0-7)
 let animationFrameCounter = 0;
 const framesPerAnimationFrame = 8; // Change frame every 8 game frames (adjust for animation speed)
 
+// Home screen ship animation variables
+let homeShipCurrentFrame = 0;
+let homeShipAnimationCounter = 0;
+let homeShipAnimationId;
+
+// Home screen star animation variables
+let homeStarAnimationId;
+
+// Game over screen ship animation variables
+let gameOverShipCurrentFrame = 0;
+let gameOverShipAnimationCounter = 0;
+let gameOverShipAnimationId;
+
 // Load asteroid PNG as an image
 const asteroidImg = new Image();
 asteroidImg.src = 'assets/meteorite.png';
@@ -43,6 +64,12 @@ asteroidImg.onload = function() {
 // Starfield background
 const stars = [];
 const numStars = 100;
+
+// Home screen starfield background
+const homeStarCanvas = document.getElementById('homeStarCanvas');
+const homeStarCtx = homeStarCanvas.getContext('2d');
+const homeStars = [];
+const numHomeStars = 150;
 
 function initStars() {
     stars.length = 0; // Clear existing stars
@@ -74,6 +101,44 @@ function updateStars() {
         if (star.y > canvas.height) {
             star.y = 0;
             star.x = Math.random() * canvas.width;
+        }
+    });
+}
+
+function initHomeStars() {
+    homeStars.length = 0; // Clear existing stars
+    for (let i = 0; i < numHomeStars; i++) {
+        homeStars.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            size: Math.random() * 3 + 0.5,
+            speed: Math.random() * 1.5 + 0.5, // Slower than game stars for home screen
+            brightness: Math.random() * 0.8 + 0.2
+        });
+    }
+}
+
+function drawHomeStars() {
+    // Clear canvas
+    homeStarCtx.clearRect(0, 0, homeStarCanvas.width, homeStarCanvas.height);
+
+    // Draw stars
+    homeStarCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    homeStars.forEach(star => {
+        homeStarCtx.globalAlpha = star.brightness;
+        homeStarCtx.beginPath();
+        homeStarCtx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        homeStarCtx.fill();
+    });
+    homeStarCtx.globalAlpha = 1.0;
+}
+
+function updateHomeStars() {
+    homeStars.forEach(star => {
+        star.y += star.speed;
+        if (star.y > homeStarCanvas.height) {
+            star.y = -star.size;
+            star.x = Math.random() * homeStarCanvas.width;
         }
     });
 }
@@ -130,11 +195,11 @@ function drawPlayer() {
         // Calculate which frame to draw from the sprite sheet
         const column = currentFrame % spriteColumns;  // Column index (0-3)
         const row = Math.floor(currentFrame / spriteColumns);  // Row index (0-1)
-        
+
         // Calculate source position in sprite sheet
         const sourceX = column * spriteFrameWidth;
         const sourceY = row * spriteFrameHeight;
-        
+
         // Draw the current frame from the sprite sheet
         ctx.drawImage(
             spriteSheet,
@@ -145,10 +210,115 @@ function drawPlayer() {
         // Fallback to drawing a rectangle if the sprite sheet hasn't loaded yet
         ctx.fillStyle = '#3498db';
         ctx.fillRect(player.x, player.y, player.width, player.height);
-        
+
         // Draw cockpit
         ctx.fillStyle = '#aed6f1';
         ctx.fillRect(player.x + player.width * 0.3, player.y + player.height * 0.2, player.width * 0.4, player.height * 0.4);
+    }
+}
+
+// Draw home screen ship animation
+function drawHomeShip() {
+    if (!spriteSheetLoaded) return;
+
+    // Calculate which frame to draw from the sprite sheet
+    const column = homeShipCurrentFrame % spriteColumns;
+    const row = Math.floor(homeShipCurrentFrame / spriteColumns);
+
+    // Calculate source position in sprite sheet
+    const sourceX = column * spriteFrameWidth;
+    const sourceY = row * spriteFrameHeight;
+
+    // Clear canvas
+    homeShipCtx.clearRect(0, 0, homeShipCanvas.width, homeShipCanvas.height);
+
+    // Draw the current frame centered on canvas
+    const destX = (homeShipCanvas.width - spriteFrameWidth) / 2;
+    const destY = (homeShipCanvas.height - spriteFrameHeight) / 2;
+
+    homeShipCtx.drawImage(
+        spriteSheet,
+        sourceX, sourceY, spriteFrameWidth, spriteFrameHeight,
+        destX, destY, spriteFrameWidth, spriteFrameHeight
+    );
+}
+
+// Draw game over screen ship animation
+function drawGameOverShip() {
+    if (!spriteSheetLoaded) return;
+
+    // Calculate which frame to draw from the sprite sheet
+    const column = gameOverShipCurrentFrame % spriteColumns;
+    const row = Math.floor(gameOverShipCurrentFrame / spriteColumns);
+
+    // Calculate source position in sprite sheet
+    const sourceX = column * spriteFrameWidth;
+    const sourceY = row * spriteFrameHeight;
+
+    // Clear canvas
+    gameOverShipCtx.clearRect(0, 0, gameOverShipCanvas.width, gameOverShipCanvas.height);
+
+    // Draw the current frame centered on canvas
+    const destX = (gameOverShipCanvas.width - spriteFrameWidth) / 2;
+    const destY = (gameOverShipCanvas.height - spriteFrameHeight) / 2;
+
+    gameOverShipCtx.drawImage(
+        spriteSheet,
+        sourceX, sourceY, spriteFrameWidth, spriteFrameHeight,
+        destX, destY, spriteFrameWidth, spriteFrameHeight
+    );
+}
+
+// Animate home screen ship
+function animateHomeShip() {
+    homeShipAnimationCounter++;
+    if (homeShipAnimationCounter >= framesPerAnimationFrame) {
+        homeShipAnimationCounter = 0;
+        homeShipCurrentFrame = (homeShipCurrentFrame + 1) % totalFrames;
+    }
+    drawHomeShip();
+    homeShipAnimationId = requestAnimationFrame(animateHomeShip);
+}
+
+// Animate game over screen ship
+function animateGameOverShip() {
+    gameOverShipAnimationCounter++;
+    if (gameOverShipAnimationCounter >= framesPerAnimationFrame) {
+        gameOverShipAnimationCounter = 0;
+        gameOverShipCurrentFrame = (gameOverShipCurrentFrame + 1) % totalFrames;
+    }
+    drawGameOverShip();
+    gameOverShipAnimationId = requestAnimationFrame(animateGameOverShip);
+}
+
+// Stop home screen ship animation
+function stopHomeShipAnimation() {
+    if (homeShipAnimationId) {
+        cancelAnimationFrame(homeShipAnimationId);
+        homeShipAnimationId = null;
+    }
+}
+
+// Stop game over screen ship animation
+function stopGameOverShipAnimation() {
+    if (gameOverShipAnimationId) {
+        cancelAnimationFrame(gameOverShipAnimationId);
+        gameOverShipAnimationId = null;
+    }
+}
+
+// Animate home screen stars
+function animateHomeStars() {
+    updateHomeStars();
+    drawHomeStars();
+    homeStarAnimationId = requestAnimationFrame(animateHomeStars);
+}
+
+// Stop home screen star animation
+function stopHomeStarAnimation() {
+    if (homeStarAnimationId) {
+        cancelAnimationFrame(homeStarAnimationId);
+        homeStarAnimationId = null;
     }
 }
 
@@ -166,7 +336,7 @@ function createEnemy() {
         y: -height,
         width: width,
         height: height,
-        speed: (Math.random() * 2 + 1) * (canvas.width * 0.001), // Speed relative to canvas size
+        speed: (Math.random() * 1.5 + 0.8) * (canvas.width * 0.0006), // Slower speed relative to canvas size
         rotation: rotation,
         rotationSpeed: rotationSpeed
     };
@@ -432,16 +602,21 @@ function stopMusic() {
 // Start game
 function startGame() {
     if (gameRunning) return;
-    
+
+    // Stop home screen animations
+    stopHomeShipAnimation();
+    stopHomeStarAnimation();
+    stopGameOverShipAnimation();
+
     // Switch to game screen
     homeScreen.classList.remove('active');
     gameScreen.classList.add('active');
     gameOverScreen.classList.remove('visible');
-    
+
     gameRunning = true;
     initPlayer(); // Initialize player based on current canvas size
     initStars(); // Initialize stars
-    
+
     // Reset game state
     score = 0;
     lives = 3;
@@ -450,13 +625,13 @@ function startGame() {
     enemySpawnRate = 60;
     currentFrame = 0; // Reset animation to first frame
     animationFrameCounter = 0;
-    
+
     scoreElement.textContent = score;
     livesElement.textContent = lives;
-    
+
     // Start background music
     playMusic();
-    
+
     lastTimestamp = performance.now();
     animationId = requestAnimationFrame(gameLoop);
 }
@@ -465,18 +640,27 @@ function startGame() {
 function endGame() {
     gameRunning = false;
     cancelAnimationFrame(animationId);
-    
+
     // Stop background music
     stopMusic();
-    
+
     // Show game over screen with final score
     finalScoreElement.textContent = score;
     gameOverScreen.classList.add('visible');
+
+    // Start game over ship animation
+    animateGameOverShip();
 }
 
 // Handle window resize
 function handleResize() {
     resizeCanvas();
+
+    // Resize home star canvas
+    homeStarCanvas.width = window.innerWidth;
+    homeStarCanvas.height = window.innerHeight;
+    initHomeStars(); // Reinitialize stars for new canvas size
+
     if (gameRunning) {
         initPlayer();
     }
@@ -509,17 +693,19 @@ function setupTouchControls() {
     
     canvas.addEventListener('touchmove', (e) => {
         if (!touchStartX) return;
-        
+
         const touchCurrentX = e.touches[0].clientX;
         const diff = touchCurrentX - touchStartX;
-        
-        // Set movement direction based on swipe
-        if (diff > 5) {
-            player.dx = player.speed; // Move right
-        } else if (diff < -5) {
-            player.dx = -player.speed; // Move left
+
+        // Set movement direction based on swipe with reduced speed for mobile
+        if (diff > 10) {
+            player.dx = player.speed * 0.6; // Move right at 60% speed
+        } else if (diff < -10) {
+            player.dx = -player.speed * 0.6; // Move left at 60% speed
+        } else {
+            player.dx = 0; // Stop if minimal movement
         }
-        
+
         e.preventDefault();
     }, { passive: false });
     
@@ -540,9 +726,24 @@ window.addEventListener('load', () => {
     initPlayer();
     initStars();
     setupTouchControls();
-    
+
+    // Set canvas sizes for ship animations
+    homeShipCanvas.width = 240;
+    homeShipCanvas.height = 240;
+    gameOverShipCanvas.width = 100;
+    gameOverShipCanvas.height = 100;
+
+    // Set up home star canvas
+    homeStarCanvas.width = window.innerWidth;
+    homeStarCanvas.height = window.innerHeight;
+    initHomeStars();
+
     // Load background music
     loadBackgroundMusic();
+
+    // Start home screen animations
+    animateHomeShip();
+    animateHomeStars();
 });
 
 // Event listeners

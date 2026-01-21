@@ -12,8 +12,10 @@
 <body>
     <!-- Home Screen -->
     <div id="homeScreen" class="screen active">
+        <canvas id="homeStarCanvas" class="home-star-canvas"></canvas>
+        <canvas id="homeShipCanvas" class="home-ship-canvas"></canvas>
         <h1 id="gameTitle">Space Defender</h1>
-        <p class="subtitle">Avoid the falling obstacles!</p>
+        <p class="subtitle">Avoid the falling astroids!</p>
         <button id="startButton" class="main-button">Start Game</button>
         <div class="instructions">
             <p>Use ← → arrows or swipe to move</p>
@@ -32,6 +34,7 @@
         
         <!-- Game Over Screen -->
         <div id="gameOverScreen" class="overlay-screen">
+            <canvas id="gameOverShipCanvas" class="game-over-ship-canvas"></canvas>
             <h2>Game Over!</h2>
             <p class="final-score">Your Score: <span id="finalScore">0</span></p>
             <button id="restartButton" class="main-button">Play Again</button>
